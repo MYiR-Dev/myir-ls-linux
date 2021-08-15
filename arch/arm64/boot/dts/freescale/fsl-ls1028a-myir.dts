@@ -105,61 +105,50 @@
 &usb1 {
 	dr_mode = "otg";
 };
+2c0 {
+        status = "okay";
+        clock-frequency = <400000>;
+                sgtl5000: audio-codec@a {
+                                #sound-dai-cells = <0>;
+                                compatible = "fsl,sgtl5000";
+                                reg = <0xa>;
+                                VDDA-supply = <&reg_1p8v>;
+                                VDDIO-supply = <&reg_1p8v>;
+                                clocks = <&sys_mclk>;
+                                sclk-strength = <3>;
+                        };
 
-&i2c0 {
-	status = "okay";
 
-	i2c-mux@77 {
-		compatible = "nxp,pca9847";
-		reg = <0x77>;
-		#address-cells = <1>;
-		#size-cells = <0>;
+        temperature-sensor@4c {
+                compatible = "nxp,sa56004";
+                reg = <0x4c>;
+                vcc-supply = <&sb_3v3>;
+        };
 
-		i2c@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x1>;
+        at24@50 {
+                compatible = "atmel,24c32";
+                pagesize = <64>;
+                reg = <0x50>;
+        };
+};
 
-			sgtl5000: audio-codec@a {
-				#sound-dai-cells = <0>;
-				compatible = "fsl,sgtl5000";
-				reg = <0xa>;
-				VDDA-supply = <&reg_1p8v>;
-				VDDIO-supply = <&reg_1p8v>;
-				clocks = <&sys_mclk>;
-				sclk-strength = <3>;
-			};
-		};
+&i2c5 {
+        status = "okay";
+        clock-frequency = <400000>;
 
-		i2c@2 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x02>;
+        sc16is752: sc16is752@48 {
+                compatible = "nxp,sc16is752";
+                reg = <0x48>;
+                clocks = <&sc16is752_mclk>;
+                interrupt-parent = <&gpio1>;
+                interrupts = <24 IRQ_TYPE_EDGE_FALLING>;
 
-			current-monitor@40 {
-				compatible = "ti,ina220";
-				reg = <0x40>;
-				shunt-resistor = <500>;
-			};
-		};
+        };
+        rx8025: rx8025@32 {
+                compatible = "epson,rx8025t";
+                reg = <0x32>;
+        };
 
-		i2c@3 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x3>;
-
-			temperature-sensor@4c {
-				compatible = "nxp,sa56004";
-				reg = <0x4c>;
-				vcc-supply = <&sb_3v3>;
-			};
-
-			rtc@51 {
-				compatible = "nxp,pcf2129";
-				reg = <0x51>;
-			};
-		};
-	};
 };
 
 &can0 {
@@ -169,13 +158,17 @@
 		max-bitrate = <5000000>;
 	};
 };
+&dspi2 {
+        bus-num = <2>;
+        status = "okay";
 
-&can1 {
-	status = "okay";
-
-	can-transceiver {
-		max-bitrate = <5000000>;
-	};
+        spidev@0 {
+                compatible = "semtech,sx1301";
+                reg = <0>;
+                spi-max-frequency = <2000000>;
+                fsl,spi-cs-sck-delay = <1000000>;
+                fsl,spi-sck-cs-delay = <50>;
+        };
 };
 
 &fspi {
@@ -208,8 +201,8 @@
 	mdio {
 		#address-cells = <1>;
 		#size-cells = <0>;
-		sgmii_phy0: ethernet-phy@2 {
-			reg = <0x2>;
+		sgmii_phy0: ethernet-phy@6 {
+			reg = <0x6>;
 		};
 	};
 };
