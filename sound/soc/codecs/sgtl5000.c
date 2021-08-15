@@ -1344,8 +1344,7 @@ static int sgtl5000_set_power_regs(struct snd_soc_component *component)
 		 * if vddio == vdda the source of charge pump should be
 		 * assigned manually to VDDIO
 		 */
-		if (regulator_is_equal(sgtl5000->supplies[VDDA].consumer,
-				       sgtl5000->supplies[VDDIO].consumer)) {
+		if (vddio == vdda) {
 			lreg_ctrl |= SGTL5000_VDDC_ASSN_OVRD;
 			lreg_ctrl |= SGTL5000_VDDC_MAN_ASSN_VDDIO <<
 				    SGTL5000_VDDC_MAN_ASSN_SHIFT;
@@ -1469,10 +1468,20 @@ static int sgtl5000_probe(struct snd_soc_component *component)
 	/* enable small pop, introduce 400ms delay in turning off */
 	snd_soc_component_update_bits(component, SGTL5000_CHIP_REF_CTRL,
 				SGTL5000_SMALL_POP, SGTL5000_SMALL_POP);
-
+	snd_soc_component_write(component, SGTL5000_CHIP_REF_CTRL, 0x004F);
+//	
+snd_soc_component_write(component, SGTL5000_CHIP_LINE_OUT_CTRL, 0x0304);
 	/* disable short cut detector */
 	snd_soc_component_write(component, SGTL5000_CHIP_SHORT_CTRL, 0);
 
+snd_soc_component_write(component, SGTL5000_CHIP_SHORT_CTRL, 0x1106);
+	snd_soc_component_update_bits(component, SGTL5000_CHIP_ANA_CTRL,
+			0x0020,1<<5);
+	snd_soc_component_update_bits(component, SGTL5000_CHIP_ANA_CTRL,
+			0x0001,1<<0);
+	snd_soc_component_write(component, SGTL5000_CHIP_ANA_CTRL, 0x6AFF);
+	snd_soc_component_write(component, SGTL5000_CHIP_LINE_OUT_VOL, 0x0F0F);
+//	snd_soc_component_write(component, SGTL5000_CHIP_DIG_POWER, 0x0073);
 	snd_soc_component_write(component, SGTL5000_CHIP_DIG_POWER,
 			SGTL5000_ADC_EN | SGTL5000_DAC_EN);
 
@@ -1644,40 +1653,8 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	if (ret)
 		dev_err(&client->dev,
 			"Error %d initializing CHIP_CLK_CTRL\n", ret);
-
-	/* Mute everything to avoid pop from the following power-up */
-	ret = regmap_write(sgtl5000->regmap, SGTL5000_CHIP_ANA_CTRL,
-			   SGTL5000_CHIP_ANA_CTRL_DEFAULT);
-	if (ret) {
-		dev_err(&client->dev,
-			"Error %d muting outputs via CHIP_ANA_CTRL\n", ret);
-		goto disable_clk;
-	}
-
-	/*
-	 * If VAG is powered-on (e.g. from previous boot), it would be disabled
-	 * by the write to ANA_POWER in later steps of the probe code. This
-	 * may create a loud pop even with all outputs muted. The proper way
-	 * to circumvent this is disabling the bit first and waiting the proper
-	 * cool-down time.
-	 */
-	ret = regmap_read(sgtl5000->regmap, SGTL5000_CHIP_ANA_POWER, &value);
-	if (ret) {
-		dev_err(&client->dev, "Failed to read ANA_POWER: %d\n", ret);
-		goto disable_clk;
-	}
-	if (value & SGTL5000_VAG_POWERUP) {
-		ret = regmap_update_bits(sgtl5000->regmap,
-					 SGTL5000_CHIP_ANA_POWER,
-					 SGTL5000_VAG_POWERUP,
-					 0);
-		if (ret) {
-			dev_err(&client->dev, "Error %d disabling VAG\n", ret);
-			goto disable_clk;
-		}
-
-		msleep(SGTL5000_VAG_POWERDOWN_DELAY);
-	}
+	ret = regmap_write(sgtl5000->regmap,
+			   SGTL5000_CHIP_I2S_CTRL,1<<7);
 
 	/* Follow section 2.2.1.1 of AN3663 */
 	ana_pwr = SGTL5000_ANA_POWER_DEFAULT;
@@ -1692,6 +1669,7 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 				"Error %d setting LINREG_VDDD\n", ret);
 
 		ana_pwr |= SGTL5000_LINEREG_D_POWERUP;
+		ana_pwr |= SGTL5000_VDDC_CHRGPMP_POWERUP;
 		dev_info(&client->dev,
 			 "Using internal LDO instead of VDDD: check ER1 erratum\n");
 	} else {
