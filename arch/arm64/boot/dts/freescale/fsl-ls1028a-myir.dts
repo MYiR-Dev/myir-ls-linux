@@ -67,7 +67,7 @@
         //      autorepeat;
                 user {
                         label = "User";
-                        gpios = <&gpio3 3 GPIO_ACTIVE_HIGH>;
+                        gpios = <&gpio3 3 GPIO_ACTIVE_LOW>;
                         linux,code = <KEY_1>;
                 };
 
@@ -117,6 +117,7 @@
 	sd-uhs-sdr50;
 	sd-uhs-sdr25;
 	sd-uhs-sdr12;
+	broken-cd;
 	status = "okay";
 };
 
