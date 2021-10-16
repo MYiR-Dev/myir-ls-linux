@@ -227,7 +227,9 @@
 &enetc_port0 {
 	phy-handle = <&sgmii_phy0>;
 	phy-connection-type = "sgmii";
-
+	phy-reset-duration = <10>;
+	phy-reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
+	phy-reset-post-delay=<20>;
 	mdio {
 		#address-cells = <1>;
 		#size-cells = <0>;
