@@ -349,10 +349,18 @@ static void felix_phylink_mac_link_up(struct dsa_switch *ds, int port,
 			 ANA_PORT_PORT_CFG, port);
 
 	/* Core: Enable port for frame transfer */
+	/*
 	ocelot_write_rix(ocelot, QSYS_SWITCH_PORT_MODE_INGRESS_DROP_MODE |
 			 QSYS_SWITCH_PORT_MODE_SCH_NEXT_CFG(1) |
 			 QSYS_SWITCH_PORT_MODE_PORT_ENA,
-			 QSYS_SWITCH_PORT_MODE, port);
+			 QSYS_SWITCH_PORT_MODE, port);*/
+	  ocelot_write_rix(ocelot,
+			   QSYS_SWITCH_PORT_MODE_SCH_NEXT_CFG(1) |
+			   QSYS_SWITCH_PORT_MODE_PORT_ENA,
+				QSYS_SWITCH_PORT_MODE, port);
+	ocelot_port_writel(ocelot_port,
+				DEV_CLOCK_CFG_LINK_SPEED(OCELOT_SPEED_1000),
+				DEV_CLOCK_CFG);
 }
 
 static void felix_get_strings(struct dsa_switch *ds, int port,
