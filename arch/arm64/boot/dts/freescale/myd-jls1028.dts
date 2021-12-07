@@ -10,7 +10,8 @@
 
 /dts-v1/;
 #include "fsl-ls1028a.dtsi"
-
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 / {
 	model = "LS1028A RDB Board";
 	compatible = "fsl,ls1028a-rdb", "fsl,ls1028a";
@@ -35,6 +36,16 @@
 		#clock-cells = <0>;
 		clock-frequency = <25000000>;
 	};
+	audio_mclk: audio-clk {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <24576000>;
+        };
+        sc16is752_mclk: sc16is752-clk {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <11059200>;
+        };
 
 	reg_1p8v: regulator-1p8v {
 		compatible = "regulator-fixed";
@@ -52,6 +63,29 @@
 		regulator-boot-on;
 		regulator-always-on;
 	};
+	gpio_keys: volume_keys@0 {
+                compatible = "gpio-keys";
+                #address-cells = <1>;
+                #size-cells = <0>;
+                //autorepeat;
+
+                switch@1 {
+                        label = "user";
+                        linux,code = <KEY_1>;
+                        gpios = <&gpio3 3 GPIO_ACTIVE_LOW>;
+                        //gpio-key,wakeup;
+                };
+
+        };
+	leds {
+                compatible = "gpio-leds";
+                led@3 {
+                        label = "d22";
+                        gpios = <&gpio3 2 GPIO_ACTIVE_LOW>;
+                        default-state = "on";
+                        linux,default-trigger = "heartbeat";
+                };
+        };
 
 	sound {
 		compatible = "simple-audio-card";
@@ -120,83 +154,63 @@
 
 &i2c0 {
 	status = "okay";
+    	sgtl5000: audio-codec@a {
+                #sound-dai-cells = <0>;
+                compatible = "fsl,sgtl5000";
+                reg = <0xa>;
+                VDDA-supply = <&reg_1p8v>;
+                VDDIO-supply = <&reg_1p8v>;
+                clocks = <&sys_mclk>;
+                sclk-strength = <3>;
+                };
+     
+        temperature-sensor@4c {
+                compatible = "nxp,sa56004";
+                reg = <0x4c>;
+                vcc-supply = <&sb_3v3>;
+        };
+        at24@50 {
+                compatible = "atmel,24c32";
+                pagesize = <32>;
+                reg = <0x50>;
+                num-addresses = <8>;
+        };
 
-	i2c-mux@77 {
-		compatible = "nxp,pca9847";
-		reg = <0x77>;
-		#address-cells = <1>;
-		#size-cells = <0>;
+      clock-generator@6a {
+                 compatible = "silabs,si5338";
+                 reg = <0x6a>;
 
-		i2c@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x1>;
+             };
+};
+&i2c5 {
+        status = "okay";
+        clock-frequency = <400000>;
 
-			sgtl5000: audio-codec@a {
-				#sound-dai-cells = <0>;
-				compatible = "fsl,sgtl5000";
-				reg = <0xa>;
-				VDDA-supply = <&reg_1p8v>;
-				VDDIO-supply = <&reg_1p8v>;
-				clocks = <&sys_mclk>;
-				sclk-strength = <3>;
-			};
-		};
+        sc16is752: sc16is752@48 {
+                compatible = "nxp,sc16is752";
+                reg = <0x48>;
+                clocks = <&sc16is752_mclk>;
+                interrupt-parent = <&gpio1>;
+                interrupts = <24 IRQ_TYPE_EDGE_FALLING>;
 
-		i2c@2 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x02>;
+        };
 
-			current-monitor@40 {
-				compatible = "ti,ina220";
-				reg = <0x40>;
-				shunt-resistor = <500>;
-			};
-		};
-
-		i2c@3 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x3>;
-
-			temperature-sensor@4c {
-				compatible = "nxp,sa56004";
-				reg = <0x4c>;
-				vcc-supply = <&sb_3v3>;
-			};
-
-			rtc@51 {
-				compatible = "nxp,pcf2129";
-				reg = <0x51>;
-			};
-		};
-
-		i2c@6 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0x6>;
-
-			pn7120: pn7120@28 {
-				compatible = "nxp,pn7120", "nxp,pn544";
-				reg = <0x28>;
-				clock-frequency = <1000000>;
-			};
-		};
-	};
+      rx8025: rx8025@32 {
+                compatible = "epson,rx8025t";
+                reg = <0x32>;
+        };
 };
 
 &dspi2 {
 	bus-num = <2>;
 	status = "okay";
-
-	mikrobus@0 {
-		compatible = "semtech,sx1301";
-		reg = <0>;
-		spi-max-frequency = <2000000>;
-		fsl,spi-cs-sck-delay = <1000000>;
-		fsl,spi-sck-cs-delay = <50>;
-	};
+        spidev@0 {
+                compatible = "semtech,sx1301";
+                reg = <0>;
+                spi-max-frequency = <2000000>;
+                fsl,spi-cs-sck-delay = <1000000>;
+                fsl,spi-sck-cs-delay = <50>;
+        };
 };
 
 &can0 {
@@ -207,13 +221,6 @@
 	};
 };
 
-&can1 {
-	status = "okay";
-
-	can-transceiver {
-		max-bitrate = <5000000>;
-	};
-};
 
 &duart0 {
 	status = "okay";
@@ -319,6 +326,3 @@
 	status = "okay";
 };
 
-&usb1 {
-	dr_mode = "otg";
-};
